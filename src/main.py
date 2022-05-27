@@ -1,4 +1,4 @@
-from src.lottery_manager import LotteryManager
+from lottery_manager import LotteryManager
 
 
 def main():

@@ -4,8 +4,8 @@ import os
 import shutil
 from typing import Optional, List
 
-from settings import settings
 from domain.file import FileRepository, Content
+from settings import settings
 
 
 class FileRepositoryLocal(FileRepository):

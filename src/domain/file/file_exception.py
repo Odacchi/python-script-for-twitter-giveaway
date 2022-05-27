@@ -1,4 +1,4 @@
-from src.domain.app_exception import AppException
+from domain.app_exception import AppException
 
 
 class FileNotFoundException(AppException):
