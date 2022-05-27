@@ -6,6 +6,11 @@ authors = ["Odacchi"]
 
 [tool.poetry.dependencies]
 python = "^3.10.4"
+tweepy = "^4.10.0"
+python-dotenv = "^0.20.0"
+pydantic = "^1.9.1"
+boto3 = "^1.23.9"
+PyYAML = "^6.0"
 
 [tool.poetry.dev-dependencies]
 
