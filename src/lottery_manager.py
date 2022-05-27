@@ -32,8 +32,8 @@ class LotteryManager:
 
         file_repo = FileRepositoryLocal()
 
-        with tempfile.NamedTemporaryFile(mode='w+', ) as tf:
-            yaml.dump(winners, tf)
+        with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8') as tf:
+            yaml.dump(winners, tf, encoding='utf-8', allow_unicode=True)
 
             now_str = datetime.now().strftime('%Y%m%d%H%M%S')
             file_repo.upload(tf.name, f'winners_{now_str}.yml')
