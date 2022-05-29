@@ -1,8 +1,13 @@
-## 必要なライブラリ
+## 実行に必要なツール
 
 Pyenv + Poetry
 
 ## 準備
+
+pyenvでpython3.10.4をインストールする。
+```
+pyenv install 3.10.4
+```
 
 ```
 poetry install
