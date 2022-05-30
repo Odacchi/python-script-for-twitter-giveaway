@@ -158,8 +158,9 @@ class LotteryUseCase:
                 if not next_token:
                     break
 
-                # 15分間に180リクエストまでしか受け付けないため最低5秒（5*180回=900秒=15分）スリープ
-                time.sleep(5100/1000)
+                # 15分間に15リクエストまでしか受け付けないため最低60秒スリープ
+                # ほかによいAPIないんか...
+                time.sleep(60)
         except Exception:
             logger.exception(f'on call get_users_followers of {user_name}. call_count: {call_count}')
             raise
