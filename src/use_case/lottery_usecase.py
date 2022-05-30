@@ -29,22 +29,22 @@ class LotteryUseCase:
     def lottery(self, tweet_url: str, num_of_winners: int, conditions: Optional[Dict] = None):
         """当選者を選出する。"""
 
-        candidates = self._get_winner_candidates(tweet_url)
+        candidates = self._get_winner_candidates(tweet_url, conditions)
 
         winner_usernames = self._pickup_winners(num_of_winners, candidates, conditions)
 
         self._save_results(winner_usernames)
 
     def _pickup_winners(self,
-                        num_of_winners: int, retweeters: List[User], conditions: Optional[Dict] = None) -> List[str]:
+                        num_of_winners: int, candidates: List[User], conditions: Optional[Dict] = None) -> List[str]:
         winner_usernames = []
         while len(winner_usernames) < num_of_winners:
-            if not retweeters:
+            if not candidates:
                 logger.debug(f'参加者不足のため終了！当選者数：{len(winner_usernames)}')
                 break
 
-            winner_candidate = random.choice(retweeters)
-            retweeters.remove(winner_candidate)
+            winner_candidate = random.choice(candidates)
+            candidates.remove(winner_candidate)
 
             if winner_candidate.username not in winner_usernames:
                 if self._is_valid_candidate(winner_candidate, conditions):
@@ -85,7 +85,7 @@ class LotteryUseCase:
         logger.debug(f"[WINNER] {winner_candidate.username} is winner")
         return True
 
-    def _get_winner_candidates(self, tweet_url) -> List[User]:
+    def _get_winner_candidates(self, tweet_url: str, conditions: Optional[Dict] = None) -> List[User]:
         client = self._client
         tweet_id = tweet_url.rsplit('/', 1)[1]
 
@@ -122,12 +122,45 @@ class LotteryUseCase:
             raise
         # 積集合
         candidate_ids = retweet_user_by_each_id.keys() & liking_user_ids
-        candidate_by_each_id = dict(filter(lambda item: item[0] in candidate_ids, retweet_user_by_each_id.items()))
+        candidate_by_each_id: Dict[User] = dict(
+            filter(lambda item: item[0] in candidate_ids, retweet_user_by_each_id.items()))
+
+        if conditions:
+            follower_ids = set([])
+            must_follows = conditions.get('must_follow', [])
+            if len(must_follows) > 0:
+                for must_follow_user_name in must_follows:
+                    follower_ids.update(self._get_follower_ids(must_follow_user_name))
+
+                candidate_by_each_id: Dict[User] = dict(
+                    filter(lambda item: item[0] in follower_ids, candidate_by_each_id.items()))
 
         candidates = list(candidate_by_each_id.values())
 
         logger.debug(f'Num of candidates: {len(candidates)}')
         return candidates
+
+    def _get_follower_ids(self, user_name: str) -> Set[int]:
+        follower_ids: Set[int] = set([])
+        next_token = None
+        try:
+            while True:
+                response = self._client.get_user(username=user_name)
+                user: User = response.data
+
+                response = self._client.get_users_followers(user.id, pagination_token=next_token, max_results=100)
+                followers = response.data
+                if followers:
+                    follower_ids.update({follower.id for follower in followers})
+                next_token = response.meta.get('next_token')
+                if not next_token:
+                    break
+                time.sleep(1)
+        except Exception:
+            logger.exception('on call get_users_followers')
+            raise
+
+        return follower_ids
 
     @staticmethod
     def _save_results(winner_usernames):
