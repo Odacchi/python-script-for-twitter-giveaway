@@ -62,10 +62,19 @@ class LotteryUseCase:
         follower_lower_limit = conditions.get('follower_lower_limit')
         if follower_lower_limit > 0:
             try:
-                response = self._client.get_users_followers(id=winner_candidate.id)
-                followers = response.data
-                if len(followers) < follower_lower_limit:
-                    logger.debug(f'[REJECT] {winner_candidate.username} is has too few followers: {len(followers)}')
+                response = self._client.get_user(id=winner_candidate.id,
+                                                 user_fields='profile_image_url,description,public_metrics')
+                # response = self._client.get_users(id=[winner_candidate.id])
+                user: User = response.data
+                public_metrics: Dict = user.public_metrics
+                if public_metrics is None:
+                    logger.warning(f'[REJECT] Empty response... {winner_candidate.username}')
+                    return False
+
+                followers_count = public_metrics.get('followers_count', 0)
+
+                if followers_count < follower_lower_limit:
+                    logger.debug(f'[REJECT] {winner_candidate.username} is has too few followers: {followers_count}')
                     return False
                 time.sleep(1)  # APIを高速で叩くのを予防
 
