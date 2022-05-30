@@ -17,10 +17,13 @@ poetry install
 
 ### 設定ファイル
 
-.env.distをコピーして.envを作成
+設定ファイルをコピーして作成
 ```
 cp .env.dist .env
+cp data/config/config.yml.dist data/config/config.yml
 ```
+
+コピー後、コピー先の設定ファイル（.env, config.yml）を記述する。
 
 ### 起動
 
