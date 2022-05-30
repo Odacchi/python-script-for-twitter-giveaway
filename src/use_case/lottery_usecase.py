@@ -116,6 +116,8 @@ class LotteryUseCase:
         candidate_by_each_id = dict(filter(lambda item: item[0] in candidate_ids, retweet_user_by_each_id.items()))
 
         candidates = list(candidate_by_each_id.values())
+
+        logger.debug(f'Num of candidates: {len(candidates)}')
         return candidates
 
     @staticmethod
