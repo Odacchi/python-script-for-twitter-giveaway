@@ -148,7 +148,7 @@ class LotteryUseCase:
                 response = self._client.get_user(username=user_name)
                 user: User = response.data
 
-                response = self._client.get_users_followers(user.id, pagination_token=next_token, max_results=100)
+                response = self._client.get_users_followers(user.id, pagination_token=next_token, max_results=1000)
                 followers = response.data
                 if followers:
                     follower_ids.update({follower.id for follower in followers})
