@@ -1,8 +1,9 @@
 import csv
 import random
 import tempfile
+import time
 from datetime import datetime
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Set
 
 import tweepy
 from tweepy import User
@@ -12,25 +13,25 @@ from log import logger
 from settings import settings
 
 
-# TODO のちにusecaseに移動
-class LotteryManager:
+class LotteryUseCase:
 
     def __init__(self) -> None:
+        # こっちだと、認証がうまくいかない
         # auth = tweepy.OAuthHandler(settings.API_KEY, settings.API_SECRET)
         # auth.set_access_token(settings.ACCESS_TOKEN, settings.ACCESS_TOKEN_SECRET)
         # self._api = tweepy.API(auth)
-
-        client = tweepy.Client(settings.BEARER_TOKEN)
         # client = tweepy.Client(consumer_key=settings.API_KEY, consumer_secret=settings.API_SECRET,
         #                        access_token=settings.ACCESS_TOKEN, access_token_secret=settings.ACCESS_TOKEN_SECRET)
+
+        client = tweepy.Client(settings.BEARER_TOKEN)
         self._client = client
 
     def lottery(self, tweet_url: str, num_of_winners: int, conditions: Optional[Dict] = None):
         """当選者を選出する。"""
 
-        retweeters = self._get_winner_dandidates(tweet_url)
+        candidates = self._get_winner_candidates(tweet_url)
 
-        winner_usernames = self._pickup_winners(num_of_winners, retweeters, conditions)
+        winner_usernames = self._pickup_winners(num_of_winners, candidates, conditions)
 
         self._save_results(winner_usernames)
 
@@ -66,6 +67,7 @@ class LotteryManager:
                 if len(followers) < follower_lower_limit:
                     logger.debug(f'[REJECT] {winner_candidate.username} is has too few followers: {len(followers)}')
                     return False
+                time.sleep(1)  # APIを高速で叩くのを予防
 
             except Exception:
                 logger.exception('on call get_followers')
@@ -74,25 +76,47 @@ class LotteryManager:
         logger.debug(f"[WINNER] {winner_candidate.username} is winner")
         return True
 
-    def _get_winner_dandidates(self, tweet_url) -> List[User]:
+    def _get_winner_candidates(self, tweet_url) -> List[User]:
         client = self._client
         tweet_id = tweet_url.rsplit('/', 1)[1]
+
         next_token = None
-        retweeters: List[User] = []
+        retweet_user_by_each_id: Dict[int, User] = {}
         try:
             while True:
                 response = client.get_retweeters(tweet_id, pagination_token=next_token, max_results=100)
 
-                data = response.data
-                if data:
-                    retweeters.extend(data)
+                retweet_users = response.data
+                if retweet_users:
+                    retweet_user_by_each_id.update({retweet_user.id: retweet_user for retweet_user in retweet_users})
                 next_token = response.meta.get('next_token')
                 if not next_token:
                     break
         except Exception:
             logger.exception('on call get_retweeters')
             raise
-        return retweeters
+
+        liking_user_ids: Set[int] = set([])
+        like_next_token = None
+        try:
+            while True:
+                response = client.get_liking_users(tweet_id, pagination_token=like_next_token, max_results=100)
+
+                liking_users = response.data
+                if liking_users:
+                    liking_user_ids.update({liking_user.id for liking_user in liking_users})
+                like_next_token = response.meta.get('next_token')
+                if not like_next_token:
+                    break
+        except Exception:
+            logger.exception('on call get_liking_users')
+            raise
+        # 積集合
+        candidate_ids = retweet_user_by_each_id.keys() & liking_user_ids
+        candidate_by_each_id = dict(filter(lambda item: item[0] in candidate_ids, retweet_user_by_each_id.items()))
+
+        candidates = list(candidate_by_each_id.values())
+        return candidates
 
     @staticmethod
     def _save_results(winner_usernames):

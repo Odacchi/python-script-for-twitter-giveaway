@@ -1,12 +1,10 @@
-import sys
-
 from config import config
-from lottery_manager import LotteryManager
+from use_case.lottery_usecase import LotteryUseCase
 
 
 def main():
-    lottery_manager = LotteryManager()
-    lottery_manager.lottery(config.tweet_url, config.num_of_winners, config.conditions)
+    lottery_use_case = LotteryUseCase()
+    lottery_use_case.lottery(config.tweet_url, config.num_of_winners, config.conditions)
 
 
 if __name__ == '__main__':
