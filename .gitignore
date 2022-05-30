@@ -128,6 +128,11 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
+# IDE
+.idea/misc.xml
+.idea/python-script-for-twitter-giveaway.iml
+
+
 data/tmp/*
 data/logs/*
 data/config/config.yml
