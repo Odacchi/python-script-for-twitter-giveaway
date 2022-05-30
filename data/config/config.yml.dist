@@ -1,0 +1,5 @@
+num_of_winners: 10
+tweet_url: 'https://twitter.com/...'
+conditions:
+   # 当選の最低条件
+   follower_lower_limit: 20 # フォロワー下限

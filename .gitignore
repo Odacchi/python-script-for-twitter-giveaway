@@ -130,6 +130,7 @@ dmypy.json
 
 data/tmp/*
 data/logs/*
+data/config/config.yml
 
 ### gitkeep ###
 !.gitkeep

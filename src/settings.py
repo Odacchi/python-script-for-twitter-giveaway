@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN: str
     ACCESS_TOKEN_SECRET: str
 
+    BEARER_TOKEN: str
+
     DATA_DIR: str = join(dirname(__file__), '../data')
 
     # Logger
