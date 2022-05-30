@@ -141,13 +141,15 @@ class LotteryUseCase:
         return candidates
 
     def _get_follower_ids(self, user_name: str) -> Set[int]:
+        call_count = 0
+
         follower_ids: Set[int] = set([])
         next_token = None
         try:
             while True:
                 response = self._client.get_user(username=user_name)
                 user: User = response.data
-
+                call_count += 1
                 response = self._client.get_users_followers(user.id, pagination_token=next_token, max_results=1000)
                 followers = response.data
                 if followers:
@@ -157,7 +159,7 @@ class LotteryUseCase:
                     break
                 time.sleep(3)
         except Exception:
-            logger.exception('on call get_users_followers')
+            logger.exception(f'on call get_users_followers of {user_name}. call_count: {call_count}')
             raise
 
         return follower_ids
