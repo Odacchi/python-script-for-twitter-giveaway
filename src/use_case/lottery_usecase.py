@@ -159,7 +159,7 @@ class LotteryUseCase:
                     break
 
                 # 15分間に180リクエストまでしか受け付けないため最低5秒（5*180回=900秒=15分）スリープ
-                time.sleep(510/1000)
+                time.sleep(5100/1000)
         except Exception:
             logger.exception(f'on call get_users_followers of {user_name}. call_count: {call_count}')
             raise
