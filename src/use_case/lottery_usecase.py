@@ -155,7 +155,7 @@ class LotteryUseCase:
                 next_token = response.meta.get('next_token')
                 if not next_token:
                     break
-                time.sleep(1)
+                time.sleep(3)
         except Exception:
             logger.exception('on call get_users_followers')
             raise
