@@ -129,8 +129,8 @@ dmypy.json
 .pyre/
 
 # IDE
-.idea/misc.xml
-.idea/python-script-for-twitter-giveaway.iml
+.idea/**/workspace.xml
+.idea/**/tasks.xml
 
 
 data/tmp/*
