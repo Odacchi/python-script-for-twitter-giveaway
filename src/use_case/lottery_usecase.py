@@ -59,8 +59,8 @@ class LotteryUseCase:
             # 条件指定なしならTrue
             return True
 
-        follower_lower_limit = conditions.get('follower_lower_limit')
-        must_have_pfp = conditions.get('must_have_pfp')
+        follower_lower_limit = conditions.get('follower_lower_limit', 0)
+        must_have_pfp = conditions.get('must_have_pfp', False)
         
         try:
             response = self._client.get_user(id=winner_candidate.id,
@@ -74,7 +74,7 @@ class LotteryUseCase:
 
             followers_count = public_metrics.get('followers_count', 0)
 
-            if followers_count < follower_lower_limit:
+            if follower_lower_limit and followers_count < follower_lower_limit:
                 logger.debug(f'[REJECT] {winner_candidate.username} has too few followers: {followers_count}')
                 return False
             
