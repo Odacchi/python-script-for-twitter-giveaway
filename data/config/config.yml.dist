@@ -5,4 +5,5 @@ conditions:
    must_follow:
    - account_1
    # - account_2
+   must_have_pfp: true # プロフィール画像必須ならtrue
    follower_lower_limit: 20 # フォロワー下限

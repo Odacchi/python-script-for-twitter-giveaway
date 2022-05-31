@@ -55,32 +55,40 @@ class LotteryUseCase:
         return winner_usernames
 
     def _is_valid_candidate(self, winner_candidate: User, conditions: Optional[Dict] = None):
-        if conditions is None:
+        if not conditions:
             # 条件指定なしならTrue
             return True
 
         follower_lower_limit = conditions.get('follower_lower_limit')
-        if follower_lower_limit > 0:
-            try:
-                response = self._client.get_user(id=winner_candidate.id,
-                                                 user_fields='profile_image_url,description,public_metrics')
-                # response = self._client.get_users(id=[winner_candidate.id])
-                user: User = response.data
-                public_metrics: Dict = user.public_metrics
-                if public_metrics is None:
-                    logger.warning(f'[REJECT] Empty response... {winner_candidate.username}')
-                    return False
+        must_have_pfp = conditions.get('must_have_pfp')
+        
+        try:
+            response = self._client.get_user(id=winner_candidate.id,
+                                             user_fields='profile_image_url,description,public_metrics')
+            # response = self._client.get_users(id=[winner_candidate.id])
+            user: User = response.data
+            public_metrics: Dict = user.public_metrics
+            if public_metrics is None:
+                logger.warning(f'[REJECT] Empty response... {winner_candidate.username}')
+                return False
 
-                followers_count = public_metrics.get('followers_count', 0)
+            followers_count = public_metrics.get('followers_count', 0)
 
-                if followers_count < follower_lower_limit:
-                    logger.debug(f'[REJECT] {winner_candidate.username} is has too few followers: {followers_count}')
-                    return False
-                time.sleep(1)  # APIを高速で叩くのを予防
+            if followers_count < follower_lower_limit:
+                logger.debug(f'[REJECT] {winner_candidate.username} has too few followers: {followers_count}')
+                return False
+            
+            if must_have_pfp and not user.profile_image_url:
+                logger.debug(f'[REJECT] {winner_candidate.username} has no PFP')
+                return False
+            
+            time.sleep(1)  # APIを高速で叩くのを予防
 
-            except Exception:
-                logger.exception('on call get_followers')
-                raise
+        except Exception:
+            logger.exception('on call get_followers')
+            raise
+
+        
 
         logger.debug(f"[WINNER] {winner_candidate.username} is winner")
         return True
