@@ -16,6 +16,7 @@ from settings import settings
 class LotteryUseCase:
 
     def __init__(self) -> None:
+        self.total_filtered = 0
         # こっちだと、認証がうまくいかない
         # auth = tweepy.OAuthHandler(settings.API_KEY, settings.API_SECRET)
         # auth.set_access_token(settings.ACCESS_TOKEN, settings.ACCESS_TOKEN_SECRET)
@@ -54,41 +55,69 @@ class LotteryUseCase:
                 logger.warning(f'{winner_candidate.username}は重複のためスキップ')
         return winner_usernames
 
+    def _filter_candidates(self, candidates: List[User], conditions: Optional[Dict] = None) -> List[User]:
+        if not conditions:
+            # 条件指定なしならそのまま返す
+            return candidates
+
+        follower_lower_limit = conditions.get('follower_lower_limit', 0)
+        must_have_pfp = conditions.get('must_have_pfp', False)
+
+        filtered_candidates: List[User] = []
+        for user in candidates:
+            public_metrics: Dict = user.public_metrics
+            if public_metrics is None:
+                raise ValueError('Invalid API response')
+                # logger.warning(f'[REJECT] Empty response... {user.username}')
+
+            followers_count = public_metrics.get('followers_count', 0)
+            if follower_lower_limit and followers_count < follower_lower_limit:
+                logger.debug(f'[REJECT] {user.username} has too few followers: {followers_count}')
+                self.total_filtered += 1
+                continue
+
+            if must_have_pfp and not user.profile_image_url:
+                logger.debug(f'[REJECT] {user.username} has no PFP')
+                self.total_filtered += 1
+                continue
+
+            filtered_candidates.append(user)
+
+        return filtered_candidates
+
     def _is_valid_candidate(self, winner_candidate: User, conditions: Optional[Dict] = None):
         if not conditions:
             # 条件指定なしならTrue
             return True
 
-        follower_lower_limit = conditions.get('follower_lower_limit', 0)
-        must_have_pfp = conditions.get('must_have_pfp', False)
-        
-        try:
-            response = self._client.get_user(id=winner_candidate.id,
-                                             user_fields='profile_image_url,description,public_metrics')
-            # response = self._client.get_users(id=[winner_candidate.id])
-            user: User = response.data
-            public_metrics: Dict = user.public_metrics
-            if public_metrics is None:
-                logger.warning(f'[REJECT] Empty response... {winner_candidate.username}')
-                return False
-
-            followers_count = public_metrics.get('followers_count', 0)
-
-            if follower_lower_limit and followers_count < follower_lower_limit:
-                logger.debug(f'[REJECT] {winner_candidate.username} has too few followers: {followers_count}')
-                return False
-            
-            if must_have_pfp and not user.profile_image_url:
-                logger.debug(f'[REJECT] {winner_candidate.username} has no PFP')
-                return False
-            
-            time.sleep(1)  # APIを高速で叩くのを予防
-
-        except Exception:
-            logger.exception('on call get_followers')
-            raise
-
-        
+        # follower_lower_limit = conditions.get('follower_lower_limit', 0)
+        # must_have_pfp = conditions.get('must_have_pfp', False)
+        #
+        # try:
+        #     response = self._client.get_user(id=winner_candidate.id,
+        #                                      user_fields='profile_image_url,description,public_metrics')
+        #     # response = self._client.get_users(id=[winner_candidate.id])
+        #     user: User = response.data
+        #     public_metrics: Dict = user.public_metrics
+        #     if public_metrics is None:
+        #         logger.warning(f'[REJECT] Empty response... {winner_candidate.username}')
+        #         return False
+        #
+        #     followers_count = public_metrics.get('followers_count', 0)
+        #
+        #     if follower_lower_limit and followers_count < follower_lower_limit:
+        #         logger.debug(f'[REJECT] {winner_candidate.username} has too few followers: {followers_count}')
+        #         return False
+        #
+        #     if must_have_pfp and not user.profile_image_url:
+        #         logger.debug(f'[REJECT] {winner_candidate.username} has no PFP')
+        #         return False
+        #
+        #     time.sleep(1)  # APIを高速で叩くのを予防
+        #
+        # except Exception:
+        #     logger.exception('on call get_followers')
+        #     raise
 
         logger.debug(f"[WINNER] {winner_candidate.username} is winner")
         return True
@@ -101,11 +130,13 @@ class LotteryUseCase:
         retweet_user_by_each_id: Dict[int, User] = {}
         try:
             while True:
-                response = client.get_retweeters(tweet_id, pagination_token=next_token, max_results=100)
-
+                response = client.get_retweeters(tweet_id,
+                                                 pagination_token=next_token, max_results=100,
+                                                 user_fields='profile_image_url,description,public_metrics')
                 retweet_users = response.data
                 if retweet_users:
-                    retweet_user_by_each_id.update({retweet_user.id: retweet_user for retweet_user in retweet_users})
+                    filtered_rt_users = self._filter_candidates(retweet_users, conditions)
+                    retweet_user_by_each_id.update({_user.id: _user for _user in filtered_rt_users})
                 next_token = response.meta.get('next_token')
                 if not next_token:
                     break
@@ -144,8 +175,9 @@ class LotteryUseCase:
                     filter(lambda item: item[0] in follower_ids, candidate_by_each_id.items()))
 
         candidates = list(candidate_by_each_id.values())
-
-        logger.debug(f'Num of candidates: {len(candidates)}')
+        logger.debug(f'=======================================')
+        logger.debug(f'Num of candidates: {len(candidates)}, Num of rejected: {self.total_filtered}')
+        logger.debug(f'=======================================')
         return candidates
 
     def _get_follower_ids(self, user_name: str) -> Set[int]:
@@ -158,6 +190,7 @@ class LotteryUseCase:
                 response = self._client.get_user(username=user_name)
                 user: User = response.data
                 call_count += 1
+                # TODO 15分間に15リクエストまでしか受け付けないため他に良い方法ないか探す
                 response = self._client.get_users_followers(user.id, pagination_token=next_token, max_results=1000)
                 followers = response.data
                 if followers:
@@ -166,9 +199,7 @@ class LotteryUseCase:
                 if not next_token:
                     break
 
-                # 15分間に15リクエストまでしか受け付けないため最低60秒スリープ
-                # ほかによいAPIないんか...
-                time.sleep(60)
+                time.sleep(1)
         except Exception:
             logger.exception(f'on call get_users_followers of {user_name}. call_count: {call_count}')
             raise
