@@ -14,6 +14,7 @@ from settings import settings
 
 
 class LotteryUseCase:
+    DEFAULT_PFP_IMAGE = 'https://abs.twimg.com/sticky/default_profile_images/default_profile_normal.png'
 
     def __init__(self) -> None:
         self.total_filtered = 0
@@ -76,7 +77,7 @@ class LotteryUseCase:
                 self.total_filtered += 1
                 continue
 
-            if must_have_pfp and not user.profile_image_url:
+            if must_have_pfp and user.profile_image_url == self.DEFAULT_PFP_IMAGE:
                 logger.debug(f'[REJECT] {user.username} has no PFP')
                 self.total_filtered += 1
                 continue
