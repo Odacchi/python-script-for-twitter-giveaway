@@ -63,6 +63,7 @@ class LotteryUseCase:
 
         follower_lower_limit = conditions.get('follower_lower_limit', 0)
         must_have_pfp = conditions.get('must_have_pfp', False)
+        exclude_users = conditions.get('exclude', [])
 
         filtered_candidates: List[User] = []
         for user in candidates:
@@ -79,6 +80,11 @@ class LotteryUseCase:
 
             if must_have_pfp and user.profile_image_url == self.DEFAULT_PFP_IMAGE:
                 logger.debug(f'[REJECT] {user.username} has no PFP')
+                self.total_filtered += 1
+                continue
+
+            if exclude_users and user.username in exclude_users:
+                logger.debug(f'[REJECT] {user.username} is excluded user')
                 self.total_filtered += 1
                 continue
 
