@@ -5,5 +5,5 @@ from tweepy import User
 
 
 class CandidatesQueryService(ABC):
-    def find_candidates(self, tweet_url, conditions: Optional[Dict] = None) -> List[User]:
+    def find_candidates(self, tweet_url: str, conditions: Optional[Dict] = None) -> List[User]:
         pass
