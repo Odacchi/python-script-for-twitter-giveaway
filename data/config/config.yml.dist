@@ -1,11 +1,11 @@
-num_of_winners: 10
-tweet_url: 'https://twitter.com/...'
+num_of_winners: 10 #当選者数
+tweet_url: 'https://twitter.com/...' # giveaway対象のTweet URL
 conditions:
     # 当選の最低条件
-    must_follow:
+    must_follow: # フォロー必須（リスト形式@マークなし）
     - account_1
     # - account_2
-    exclude: # 当選から除外
+    exclude: # 当選から除外（リスト形式@マークなし）
     - account_1
     # - account_2
     must_have_pfp: true # プロフィール画像必須ならtrue
