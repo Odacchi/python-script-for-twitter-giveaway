@@ -11,7 +11,7 @@ sh.setLevel(settings.LOGGER_LEVEL)
 
 # フォーマッタを定義する（第一引数はメッセージのフォーマット文字列、第二引数は日付時刻のフォーマット文字列）
 fmt = logging.Formatter(
-    "[%(asctime)s][%(levelname)s](%(name)s:%(pathname)s:%(lineno)s) %(message)s",
+    "[%(asctime)s][%(levelname)s](%(name)s:%(filename)s:%(lineno)s) %(message)s",
     "%Y-%m-%dT%H:%M:%S"
 )
 

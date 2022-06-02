@@ -1,5 +1,5 @@
 from config import config
-from use_case.lottery_usecase import LotteryUseCase
+from use_case.lottery.lottery_usecase import LotteryUseCase
 
 
 def main():
